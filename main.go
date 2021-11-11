@@ -2,30 +2,60 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	"io"
+	"log"
 	"net"
+	"strings"
 )
 
+const maxNumberOfConnections = 5
+
 func main() {
-	fmt.Println("hello world!")
-	listener, err := net.Listen("tcp", "127.0.0.1:4000")
+	listener, err := net.Listen("tcp", "0.0.0.0:4000")
 	if err != nil {
-		fmt.Println("there has been a problem")
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
-	connection, err := listener.Accept()
-	if err != nil {
-		fmt.Println("there has been a problemo accepting connections!")
-	}
-	isInputValid := true
-	for isInputValid {
-		var inputString, _ = bufio.NewReader(connection).ReadString('\n')
-		fmt.Println(inputString)
-		// TODO trim input
-		isInputValid = checkInputValidity(inputString)
+	defer listener.Close()
+
+	for {
+		connection, err := listener.Accept()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		// If you want, you can increment a counter here and inject to handleClientRequest below as client identifier
+		go handleClientRequest(connection)
 	}
 }
 
-func checkInputValidity(inputString string) bool {
-	return true
+func handleClientRequest(con net.Conn) {
+	clientReader := bufio.NewReader(con)
+
+	for {
+		// Waiting for the client request
+		clientRequest, err := clientReader.ReadString('\n')
+
+		switch err {
+		case nil:
+			clientRequest := strings.TrimSpace(clientRequest)
+			if clientRequest == "terminate" {
+				log.Println("client requested server to close the connection so closing")
+				return
+			} else {
+				log.Println(clientRequest)
+			}
+		case io.EOF:
+			log.Println("client closed the connection by terminating the process")
+			return
+		default:
+			log.Printf("error: %v\n", err)
+			return
+		}
+
+		// Responding to the client request
+		if _, err = con.Write([]byte("GOT IT!\n")); err != nil {
+			log.Printf("failed to respond to client: %v\n", err)
+		}
+	}
 }
