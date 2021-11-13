@@ -2,9 +2,9 @@ package main
 
 import (
 	"bufio"
-	"io"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -36,26 +36,25 @@ func handleClientRequest(con net.Conn) {
 		// Waiting for the client request
 		clientRequest, err := clientReader.ReadString('\n')
 
-		switch err {
-		case nil:
-			clientRequest := strings.TrimSpace(clientRequest)
-			if clientRequest == "terminate" {
-				log.Println("client requested server to close the connection so closing")
-				return
-			} else {
-				log.Println(clientRequest)
-			}
-		case io.EOF:
-			log.Println("client closed the connection by terminating the process")
-			return
-		default:
-			log.Printf("error: %v\n", err)
+		if err != nil {
+			log.Println("error reading client request: %v", err)
 			return
 		}
-
-		// Responding to the client request
-		if _, err = con.Write([]byte("GOT IT!\n")); err != nil {
-			log.Printf("failed to respond to client: %v\n", err)
+		clientRequest = strings.TrimSpace(clientRequest)
+		if clientRequest == "terminate" {
+			log.Println("client requested server to close the connection so closing")
+			return
+		}
+		if isValidResponse(clientRequest) {
+			log.Println(clientRequest)
+		} else {
+			log.Println("invalid response from the client, closing connection")
+			return
 		}
 	}
+}
+
+func isValidResponse(request string) bool {
+	_, err := strconv.Atoi(request)
+	return err == nil
 }
