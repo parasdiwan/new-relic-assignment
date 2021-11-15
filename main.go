@@ -1,7 +1,9 @@
 package main
 
+import "fmt"
+
 func main() {
 	StartLogger()
-	println("Application started, listening on port 4000")
+	fmt.Println("Application started, listening on port 4000")
 	StartListener()
 }
